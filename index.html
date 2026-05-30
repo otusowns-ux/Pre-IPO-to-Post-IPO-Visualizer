@@ -319,6 +319,16 @@
             <input id="demand" type="range" min="10" max="100" step="5" value="60">
           </div>
 
+          <div class="control">
+            <label for="float">Day-one float <output id="float-out">15%</output></label>
+            <input id="float" type="range" min="5" max="30" step="1" value="15">
+          </div>
+
+          <div class="control">
+            <label for="lockup">Lockup period <output id="lockup-out">180 days</output></label>
+            <input id="lockup" type="range" min="90" max="365" step="15" value="180">
+          </div>
+
           <div class="buttons">
             <button id="play">Play</button>
             <button id="reset" class="secondary">Reset</button>
@@ -341,14 +351,22 @@
               <b id="phase">Seed</b>
               <span>Current phase</span>
             </div>
+            <div class="metric">
+              <b id="ownership">100%</b>
+              <span>Founder ownership left</span>
+            </div>
+            <div class="metric">
+              <b id="float-metric">15%</b>
+              <span>Shares tradeable day one</span>
+            </div>
           </div>
         </div>
 
         <div class="key">
           <div class="key-row"><i class="swatch green"></i><span>Private money enters through seed, Series A, Series B, and later rounds with visible dollar amounts.</span></div>
-          <div class="key-row"><i class="swatch gold"></i><span>The IPO wall converts a private story into a public stock.</span></div>
-          <div class="key-row"><i class="swatch red"></i><span>Early investors may sell some shares after IPO, creating public supply.</span></div>
-          <div class="key-row"><i class="swatch"></i><span>Public investors buy shares and the price searches for a market-clearing range.</span></div>
+          <div class="key-row"><i class="swatch gold"></i><span>Primary IPO shares fund the company; secondary shares pay existing holders.</span></div>
+          <div class="key-row"><i class="swatch red"></i><span>Lockup expiration increases how many insider shares can hit the market.</span></div>
+          <div class="key-row"><i class="swatch"></i><span>Public investors buy shares while the price explores upside, flat, and downside paths.</span></div>
         </div>
       </aside>
     </section>
@@ -361,17 +379,23 @@
       rounds: document.querySelector("#rounds"),
       capital: document.querySelector("#capital"),
       selloff: document.querySelector("#selloff"),
-      demand: document.querySelector("#demand")
+      demand: document.querySelector("#demand"),
+      float: document.querySelector("#float"),
+      lockup: document.querySelector("#lockup")
     };
     const output = {
       rounds: document.querySelector("#rounds-out"),
       capital: document.querySelector("#capital-out"),
       selloff: document.querySelector("#selloff-out"),
       demand: document.querySelector("#demand-out"),
+      float: document.querySelector("#float-out"),
+      lockup: document.querySelector("#lockup-out"),
       value: document.querySelector("#value"),
       pressure: document.querySelector("#pressure"),
       price: document.querySelector("#price"),
       phase: document.querySelector("#phase"),
+      ownership: document.querySelector("#ownership"),
+      floatMetric: document.querySelector("#float-metric"),
       calloutTitle: document.querySelector("#callout-title"),
       calloutCopy: document.querySelector("#callout-copy")
     };
@@ -393,22 +417,22 @@
       },
       {
         title: "Private rounds fund the company",
-        copy: "Seed, Series A, Series B, and later investors send cash into the company before anyone can buy it publicly.",
+        copy: "Seed, Series A, Series B, and later investors send cash into the company, while founder ownership is diluted.",
         label: "Series"
       },
       {
         title: "The company crosses the IPO wall",
-        copy: "At IPO, the company becomes a public stock. Some new cash may go to the company, and some shares come from existing holders.",
+        copy: "Primary IPO shares send cash to the company. Secondary shares send cash to existing holders, not the business.",
         label: "IPO"
       },
       {
-        title: "Early investors start cashing out",
-        copy: "After the IPO and lockup windows, earlier investors can sell some shares. Red arrows show cash moving back to those holders.",
-        label: "Exits"
+        title: "Lockup limits insider selling",
+        copy: "Most pre-IPO holders wait 90 to 180 days or more before they can sell freely. When the timer expires, supply can jump.",
+        label: "Lockup"
       },
       {
         title: "Price discovery",
-        copy: "Public investors buy and sell shares. The price settles around supply, demand, results, expectations, and market mood.",
+        copy: "Public investors buy and sell shares. The stock explores upside, flat, and downside paths as supply and demand change.",
         label: "Market"
       }
     ];
@@ -437,7 +461,9 @@
         rounds: Number(controls.rounds.value),
         capital: Number(controls.capital.value),
         selloff: Number(controls.selloff.value),
-        demand: Number(controls.demand.value)
+        demand: Number(controls.demand.value),
+        float: Number(controls.float.value),
+        lockup: Number(controls.lockup.value)
       };
     }
 
@@ -462,6 +488,39 @@
       });
     }
 
+    function ownershipModel(state) {
+      const roundDilution = [0.17, 0.19, 0.16, 0.12, 0.09, 0.08];
+      const optionPool = 0.12;
+      const fundedProgress = clamp((progress - 0.06) / 0.4, 0, 1);
+      const activeRounds = Math.min(state.rounds, Math.floor(state.rounds * fundedProgress + 0.001));
+      let founders = 1;
+      const investorSlices = [];
+
+      for (let i = 0; i < state.rounds; i += 1) {
+        const dilution = i < activeRounds ? roundDilution[i] : 0;
+        founders *= 1 - dilution;
+        investorSlices.push({
+          name: roundNames[i],
+          share: dilution,
+          color: roundPalette[i],
+          active: i < activeRounds
+        });
+      }
+
+      const optionSlice = optionPool * clamp(fundedProgress, 0, 1);
+      founders = Math.max(0.15, founders - optionSlice * 0.45);
+
+      return {
+        founders,
+        optionPool: optionSlice,
+        investors: investorSlices
+      };
+    }
+
+    function marketDays(state) {
+      return Math.round(clamp((progress - 0.58) / 0.42, 0, 1) * Math.max(365, state.lockup + 60));
+    }
+
     function currentCompanyX(w, wallX) {
       const leftStart = Math.max(94, w * 0.17);
       const leftLate = wallX - Math.max(70, w * 0.08);
@@ -479,8 +538,11 @@
       output.capital.value = `$${state.capital}M`;
       output.selloff.value = `${state.selloff}%`;
       output.demand.value = `${state.demand}%`;
+      output.float.value = `${state.float}%`;
+      output.lockup.value = `${state.lockup} days`;
 
       const rounds = roundModel(state);
+      const ownership = ownershipModel(state);
       const fundedCount = Math.min(
         state.rounds,
         Math.floor(state.rounds * clamp((progress - 0.06) / 0.4, 0, 1) + 0.001)
@@ -488,8 +550,10 @@
       const cashRaised = rounds.slice(0, fundedCount).reduce((sum, item) => sum + item.amount, 0);
       const postIpo = clamp((progress - 0.56) / 0.44, 0, 1);
       const ipoPrimary = Math.round(state.capital * 0.42 * clamp((progress - 0.54) / 0.2, 0, 1));
-      const exitCash = Math.round(state.capital * state.selloff / 100 * 0.82 * clamp((progress - 0.66) / 0.26, 0, 1));
-      const fairPrice = 10 + state.capital / 45 + state.demand / 11 - state.selloff / 17;
+      const lockupFactor = clamp((marketDays(state) - state.lockup) / 60, 0, 1);
+      const exitCash = Math.round(state.capital * state.selloff / 100 * 0.82 * lockupFactor);
+      const floatVolatility = clamp((25 - state.float) / 20, 0, 1.2);
+      const fairPrice = 10 + state.capital / 50 + state.demand / 12 - state.selloff / 18 + floatVolatility * 1.8;
       const wave = Math.sin(progress * Math.PI * 8) * (1 - Math.min(postIpo, 0.85)) * 1.2;
       const price = clamp(10 + (fairPrice - 10) * postIpo + wave, 3.25, 42);
       const phaseIndex = progress < 0.22 ? 0 : progress < 0.5 ? 1 : progress < 0.62 ? 2 : progress < 0.8 ? 3 : 4;
@@ -498,6 +562,8 @@
       output.pressure.textContent = `$${exitCash}M`;
       output.price.textContent = `$${price.toFixed(2)}`;
       output.phase.textContent = phases[phaseIndex].label;
+      output.ownership.textContent = `${Math.round(ownership.founders * 100)}%`;
+      output.floatMetric.textContent = `${state.float}%`;
       output.calloutTitle.textContent = phases[phaseIndex].title;
       output.calloutCopy.textContent = phases[phaseIndex].copy;
     }
@@ -586,6 +652,57 @@
       text("IPO", x, top - 22, 15, "#8f5418", 800);
     }
 
+    function drawOwnershipStack(state, rounds, w, h, wallX) {
+      const ownership = ownershipModel(state);
+      const x = Math.max(18, w * 0.055);
+      const y = h - 158;
+      const width = Math.max(210, wallX - x - 40);
+      const height = 18;
+      let cursor = x;
+
+      roundRect(x - 10, y - 30, width + 20, 68, 8, "rgba(255,255,255,.68)", "rgba(23,33,43,.12)");
+      text("ownership stack", x, y - 16, 12, "#5d6975", 800, "left");
+
+      const foundersWidth = width * ownership.founders;
+      roundRect(cursor, y, foundersWidth, height, 4, "rgba(37, 99, 169, .76)", "rgba(255,255,255,.9)");
+      cursor += foundersWidth;
+
+      ownership.investors.forEach((slice, index) => {
+        if (!slice.active) return;
+        const sliceWidth = Math.max(3, width * slice.share);
+        roundRect(cursor, y, sliceWidth, height, 2, `${slice.color}cc`, "rgba(255,255,255,.65)");
+        cursor += sliceWidth;
+        if (sliceWidth > 22) text(String(index + 1), cursor - sliceWidth / 2, y + height / 2, 9, "white", 850);
+      });
+
+      const optionWidth = Math.max(0, width * ownership.optionPool);
+      if (optionWidth > 3) {
+        roundRect(cursor, y, optionWidth, height, 2, "rgba(179, 106, 30, .72)", "rgba(255,255,255,.65)");
+      }
+
+      text(`founders ${Math.round(ownership.founders * 100)}%`, x, y + 34, 12, "#2563a9", 850, "left");
+      text(`option pool ${Math.round(ownership.optionPool * 100)}%`, x + width, y + 34, 12, "#8f5418", 850, "right");
+    }
+
+    function drawLockupTimer(state, w, h, wallX) {
+      const start = clamp((progress - 0.58) / 0.42, 0, 1);
+      if (start <= 0) return;
+
+      const days = marketDays(state);
+      const timerX = wallX + 44;
+      const timerY = h - 158;
+      const timerW = Math.max(160, w - timerX - 32);
+      const timerH = 12;
+      const fill = clamp(days / state.lockup, 0, 1);
+      const unlocked = days >= state.lockup;
+
+      roundRect(timerX - 10, timerY - 26, timerW + 20, 66, 8, "rgba(255,255,255,.65)", "rgba(23,33,43,.12)");
+      text(`lockup ${Math.min(days, state.lockup)} / ${state.lockup} days`, timerX, timerY - 13, 12, unlocked ? "#b43d3d" : "#5d6975", 850, "left");
+      roundRect(timerX, timerY, timerW, timerH, 6, "rgba(23,33,43,.08)", "rgba(23,33,43,.08)");
+      roundRect(timerX, timerY, timerW * fill, timerH, 6, unlocked ? "rgba(180,61,61,.78)" : "rgba(179,106,30,.72)", "rgba(255,255,255,.4)");
+      text(unlocked ? "insider shares unlock" : "most insiders still locked", timerX, timerY + 31, 12, unlocked ? "#b43d3d" : "#5d6975", 800, "left");
+    }
+
     function investorPosition(index, count, w, h, wallX) {
       const t = count === 1 ? 0.5 : index / (count - 1);
       const x = w * 0.09 + t * Math.max(1, wallX - w * 0.23);
@@ -632,11 +749,14 @@
       }
 
       drawCompany(companyX, centerY, state, rounds, progress > 0.58);
+      drawOwnershipStack(state, rounds, w, h, wallX);
     }
 
     function drawMarket(state, w, h, wallX) {
       const start = clamp((progress - 0.54) / 0.46, 0, 1);
-      const sellStart = clamp((progress - 0.63) / 0.26, 0, 1);
+      const days = marketDays(state);
+      const lockupFactor = clamp((days - state.lockup) / 60, 0, 1);
+      const sellStart = clamp((progress - 0.63) / 0.26, 0, 1) * lockupFactor;
       const demandStart = clamp((progress - 0.7) / 0.24, 0, 1);
       const centerY = h * 0.48;
       const companyX = currentCompanyX(w, wallX);
@@ -647,8 +767,10 @@
         roundRect(exchangeX - 54, centerY - 34, 108, 68, 8, "rgba(255,255,255,.72)", "rgba(37,99,169,.25)");
         text("Public", exchangeX, centerY - 12, 13, "#2563a9", 850);
         text("market", exchangeX, centerY + 8, 13, "#2563a9", 850);
-        arrow(companyX + 30, centerY, exchangeX - 56, centerY, "rgba(179, 106, 30, 0.8)", 2.5, [6, 5]);
-        text(`IPO raises $${Math.round(state.capital * 0.42 * start)}M`, (companyX + exchangeX) / 2, centerY - 28, 12, "#8f5418", 800);
+        arrow(companyX + 30, centerY - 8, exchangeX - 56, centerY - 8, "rgba(46, 125, 88, 0.78)", 2.5, [6, 5]);
+        arrow(exchangeX - 56, centerY + 13, companyX + 30, centerY + 13, "rgba(179, 106, 30, 0.72)", 2, [4, 5]);
+        text(`primary $${Math.round(state.capital * 0.42 * start)}M to company`, (companyX + exchangeX) / 2, centerY - 36, 12, "#2e7d58", 800);
+        text(`secondary $${Math.round(state.capital * 0.18 * start)}M to holders`, (companyX + exchangeX) / 2, centerY + 38, 12, "#8f5418", 800);
       }
 
       for (let i = 0; i < state.rounds; i += 1) {
@@ -682,21 +804,51 @@
 
       if (start > 0) {
         const chartX = wallX + 82;
-        const chartY = h * 0.75;
+        const chartY = h * 0.68;
         const chartW = w - chartX - 36;
         const chartH = 96;
         line(chartX, chartY, chartX + chartW, chartY, "rgba(23,33,43,.26)", 1);
         line(chartX, chartY - chartH, chartX, chartY, "rgba(23,33,43,.16)", 1);
+        text("2x", chartX - 10, chartY - chartH + 6, 10, "#5d6975", 750, "right");
+        text("1x", chartX - 10, chartY - 45, 10, "#5d6975", 750, "right");
+        text(".5x", chartX - 10, chartY - 8, 10, "#5d6975", 750, "right");
+
+        const path = (target, color, width, dash = []) => {
+          ctx.save();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width;
+          ctx.setLineDash(dash);
+          ctx.beginPath();
+          const points = 42;
+          for (let i = 0; i < points; i += 1) {
+            const t = i / (points - 1);
+            const x = chartX + t * chartW * start;
+            const curve = 1 - Math.exp(-t * 2.4);
+            const noise = Math.sin(t * Math.PI * 3 + progress * 7) * (1 - t) * 8;
+            const y = chartY - 44 - target * curve - noise;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        };
+
+        path(48, "rgba(46,125,88,.22)", 2, [5, 6]);
+        path(0, "rgba(93,105,117,.2)", 2, [5, 6]);
+        path(-34, "rgba(180,61,61,.18)", 2, [5, 6]);
 
         ctx.save();
         ctx.strokeStyle = "#2563a9";
         ctx.lineWidth = 3;
         ctx.beginPath();
         const points = 42;
+        const floatVolatility = clamp((25 - state.float) / 20, 0, 1.2);
+        const pressure = state.selloff * lockupFactor;
+        const target = (state.demand - pressure) * 0.46 + floatVolatility * 14;
         for (let i = 0; i < points; i += 1) {
           const t = i / (points - 1);
-          const wave = Math.sin(t * Math.PI * 3 + progress * 7) * (1 - t) * 22;
-          const trend = (state.demand - state.selloff) * 0.36 * t;
+          const wave = Math.sin(t * Math.PI * 3 + progress * 7) * (1 - t) * (14 + floatVolatility * 10);
+          const trend = target * t;
           const x = chartX + t * chartW * start;
           const y = chartY - 44 - trend - wave;
           if (i === 0) ctx.moveTo(x, y);
@@ -705,7 +857,10 @@
         ctx.stroke();
         ctx.restore();
         text("price discovery", chartX + chartW / 2, chartY + 24, 13, "#5d6975", 750);
+        text(`${state.float}% float`, chartX + chartW, chartY - chartH + 18, 12, "#2563a9", 850, "right");
       }
+
+      drawLockupTimer(state, w, h, wallX);
     }
 
     function draw() {
