@@ -617,6 +617,31 @@
       ctx.restore();
     }
 
+    function labelBadge(lines, x, y, options = {}) {
+      const size = options.size || 12;
+      const color = options.color || "#17212b";
+      const fill = options.fill || "rgba(255,255,255,.86)";
+      const stroke = options.stroke || "rgba(23,33,43,.12)";
+      const align = options.align || "center";
+      const weight = options.weight || 800;
+      const paddingX = 8;
+      const paddingY = 6;
+      const lineHeight = size + 4;
+
+      ctx.save();
+      ctx.font = `${weight} ${size}px Inter, system-ui, sans-serif`;
+      const width = Math.max(...lines.map((lineItem) => ctx.measureText(lineItem).width)) + paddingX * 2;
+      const height = lines.length * lineHeight + paddingY * 2 - 4;
+      const left = align === "left" ? x : align === "right" ? x - width : x - width / 2;
+      roundRect(left, y - height / 2, width, height, 6, fill, stroke);
+      ctx.restore();
+
+      lines.forEach((lineItem, index) => {
+        const tx = align === "left" ? x + paddingX : align === "right" ? x - paddingX : x;
+        text(lineItem, tx, y - (lines.length - 1) * lineHeight / 2 + index * lineHeight, size, color, weight, align);
+      });
+    }
+
     function roundRect(x, y, width, height, radius, fill, stroke = "rgba(23,33,43,.15)") {
       ctx.save();
       ctx.fillStyle = fill;
@@ -718,9 +743,14 @@
 
       circle(x, y, 31, publicMode ? "rgba(179, 106, 30, 0.18)" : "rgba(37, 99, 169, 0.16)", publicMode ? "rgba(179, 106, 30, 0.92)" : "rgba(37, 99, 169, 0.58)", 3);
       circle(x, y, 17, publicMode ? "#b36a1e" : "#2563a9", "white", 3);
-      text(publicMode ? "IPO Co." : "Company", x, y + 52, 13, "#17212b", 850);
-      text(`cash $${fundedCash}M`, x, y - 52, 13, "#17212b", 850);
-      text(`value $${valuation}M`, x, y - 34, 12, "#5d6975", 750);
+      if (!publicMode) text("Company", x, y + 52, 13, "#17212b", 850);
+      if (!publicMode) {
+        labelBadge([`cash $${fundedCash}M`, `value $${valuation}M`], x, y - 52, {
+          color: "#17212b",
+          size: 12,
+          fill: "rgba(255,255,255,.8)"
+        });
+      }
     }
 
     function drawFunding(state, w, h, wallX) {
@@ -760,17 +790,24 @@
       const demandStart = clamp((progress - 0.7) / 0.24, 0, 1);
       const centerY = h * 0.48;
       const companyX = currentCompanyX(w, wallX);
-      const exchangeX = Math.min(w - 82, wallX + Math.max(92, w * 0.18));
+      const exchangeX = Math.min(w - 110, wallX + Math.max(126, w * 0.21));
       const rounds = roundModel(state);
 
       if (start > 0) {
         roundRect(exchangeX - 54, centerY - 34, 108, 68, 8, "rgba(255,255,255,.72)", "rgba(37,99,169,.25)");
         text("Public", exchangeX, centerY - 12, 13, "#2563a9", 850);
         text("market", exchangeX, centerY + 8, 13, "#2563a9", 850);
-        arrow(companyX + 30, centerY - 8, exchangeX - 56, centerY - 8, "rgba(46, 125, 88, 0.78)", 2.5, [6, 5]);
-        arrow(exchangeX - 56, centerY + 13, companyX + 30, centerY + 13, "rgba(179, 106, 30, 0.72)", 2, [4, 5]);
-        text(`primary $${Math.round(state.capital * 0.42 * start)}M to company`, (companyX + exchangeX) / 2, centerY - 36, 12, "#2e7d58", 800);
-        text(`secondary $${Math.round(state.capital * 0.18 * start)}M to holders`, (companyX + exchangeX) / 2, centerY + 38, 12, "#8f5418", 800);
+        arrow(companyX + 30, centerY - 28, exchangeX - 56, centerY - 28, "rgba(46, 125, 88, 0.78)", 2.5, [6, 5]);
+        arrow(exchangeX - 56, centerY + 30, companyX + 30, centerY + 30, "rgba(179, 106, 30, 0.72)", 2, [4, 5]);
+        labelBadge([`primary $${Math.round(state.capital * 0.42 * start)}M`, "to company"], exchangeX - 88, centerY - 62, {
+          color: "#2e7d58",
+          fill: "rgba(255,255,255,.88)"
+        });
+        labelBadge([`secondary $${Math.round(state.capital * 0.18 * start)}M`, "to holders"], wallX + 10, centerY + 72, {
+          color: "#8f5418",
+          fill: "rgba(255,255,255,.9)",
+          align: "left"
+        });
       }
 
       for (let i = 0; i < state.rounds; i += 1) {
@@ -778,10 +815,11 @@
         const cashOut = Math.round(rounds[i].amount * state.selloff / 100 * 1.6);
         const exit = clamp(sellStart - i * 0.04, 0, 1);
         if (exit > 0) {
-          const fromX = exchangeX - 20;
+          const fromX = exchangeX - 62;
+          const fromY = centerY + 34;
           const px = fromX + (x - fromX) * ease(exit);
-          const py = centerY + (y - centerY) * ease(exit);
-          arrow(fromX, centerY, px, py, "rgba(180, 61, 61, 0.65)", 2);
+          const py = fromY + (y - fromY) * ease(exit);
+          arrow(fromX, fromY, px, py, "rgba(180, 61, 61, 0.65)", 2);
           circle(px, py, 5, "rgba(180, 61, 61, 0.9)", "white", 1.5);
           text(`+$${cashOut}M`, x, y + 38, 11, "rgba(180, 61, 61, 0.95)", 850);
         }
@@ -856,7 +894,6 @@
         }
         ctx.stroke();
         ctx.restore();
-        text("price discovery", chartX + chartW / 2, chartY + 24, 13, "#5d6975", 750);
         text(`${state.float}% float`, chartX + chartW, chartY - chartH + 18, 12, "#2563a9", 850, "right");
       }
 
