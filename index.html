@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-IPO to Post-IPO Visualizer</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5d6975;
+      --paper: #fbfaf7;
+      --line: #d9d4c9;
+      --green: #2e7d58;
+      --gold: #b36a1e;
+      --blue: #2563a9;
+      --red: #b43d3d;
+      --panel: #ffffff;
+      --shadow: 0 18px 48px rgba(23, 33, 43, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      padding: 22px clamp(18px, 4vw, 48px) 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(251, 250, 247, 0.92);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3vw, 2.55rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .subhead {
+      margin: 8px 0 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.45;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      padding: 18px clamp(14px, 3vw, 34px) 24px;
+      min-height: 0;
+    }
+
+    .stage-wrap {
+      position: relative;
+      min-height: 620px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(46, 125, 88, 0.08), rgba(46, 125, 88, 0.02) 47%, transparent 47%),
+        linear-gradient(90deg, transparent 53%, rgba(37, 99, 169, 0.04), rgba(37, 99, 169, 0.10)),
+        #fffefb;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .legend {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 16px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .callout {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      width: min(520px, calc(100% - 36px));
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 30px rgba(23, 33, 43, 0.08);
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    .callout span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    aside {
+      align-self: start;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 16px;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    output {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: white;
+      min-height: 38px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: white;
+      color: var(--ink);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      padding: 10px;
+      min-height: 74px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 1.25rem;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.25;
+    }
+
+    .key {
+      margin-top: 16px;
+      display: grid;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.3;
+    }
+
+    .key-row {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 9px;
+      align-items: start;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      margin-top: 2px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .swatch.green {
+      background: var(--green);
+    }
+
+    .swatch.gold {
+      background: var(--gold);
+    }
+
+    .swatch.red {
+      background: var(--red);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stage-wrap {
+        min-height: 560px;
+      }
+
+      aside {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 560px) {
+      header {
+        padding-top: 16px;
+      }
+
+      .stage-wrap {
+        min-height: 500px;
+      }
+
+      .legend {
+        font-size: 0.7rem;
+      }
+
+      .callout {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pre-IPO to Post-IPO Visualizer</h1>
+      <p class="subhead">A simple model of private capital flowing into a company, crossing the IPO threshold, and then meeting public-market price discovery.</p>
+    </header>
+
+    <section class="app" aria-label="IPO visualizer">
+      <div class="stage-wrap">
+        <div class="legend">
+          <span>Pre-IPO private rounds</span>
+          <span>Post-IPO public market</span>
+        </div>
+        <canvas id="stage" aria-label="Animated diagram of private funding rounds and public market trading"></canvas>
+        <div class="callout" aria-live="polite">
+          <strong id="callout-title">Private company forms</strong>
+          <span id="callout-copy">The company starts as a small dot. Early believers provide capital before the stock is public.</span>
+        </div>
+      </div>
+
+      <aside>
+        <div class="controls">
+          <div class="control">
+            <label for="rounds">Funding rounds <output id="rounds-out">4</output></label>
+            <input id="rounds" type="range" min="1" max="6" value="4">
+          </div>
+
+          <div class="control">
+            <label for="capital">Capital raised <output id="capital-out">$120M</output></label>
+            <input id="capital" type="range" min="20" max="300" step="10" value="120">
+          </div>
+
+          <div class="control">
+            <label for="selloff">Investor selling after IPO <output id="selloff-out">45%</output></label>
+            <input id="selloff" type="range" min="0" max="90" step="5" value="45">
+          </div>
+
+          <div class="control">
+            <label for="demand">Public demand <output id="demand-out">60%</output></label>
+            <input id="demand" type="range" min="10" max="100" step="5" value="60">
+          </div>
+
+          <div class="buttons">
+            <button id="play">Play</button>
+            <button id="reset" class="secondary">Reset</button>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <b id="value">$0M</b>
+              <span>Cash raised into company</span>
+            </div>
+            <div class="metric">
+              <b id="pressure">0%</b>
+              <span>Early-investor cash out</span>
+            </div>
+            <div class="metric">
+              <b id="price">$10.00</b>
+              <span>Public trading price</span>
+            </div>
+            <div class="metric">
+              <b id="phase">Seed</b>
+              <span>Current phase</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="key">
+          <div class="key-row"><i class="swatch green"></i><span>Private money enters through seed, Series A, Series B, and later rounds with visible dollar amounts.</span></div>
+          <div class="key-row"><i class="swatch gold"></i><span>The IPO wall converts a private story into a public stock.</span></div>
+          <div class="key-row"><i class="swatch red"></i><span>Early investors may sell some shares after IPO, creating public supply.</span></div>
+          <div class="key-row"><i class="swatch"></i><span>Public investors buy shares and the price searches for a market-clearing range.</span></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#stage");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      rounds: document.querySelector("#rounds"),
+      capital: document.querySelector("#capital"),
+      selloff: document.querySelector("#selloff"),
+      demand: document.querySelector("#demand")
+    };
+    const output = {
+      rounds: document.querySelector("#rounds-out"),
+      capital: document.querySelector("#capital-out"),
+      selloff: document.querySelector("#selloff-out"),
+      demand: document.querySelector("#demand-out"),
+      value: document.querySelector("#value"),
+      pressure: document.querySelector("#pressure"),
+      price: document.querySelector("#price"),
+      phase: document.querySelector("#phase"),
+      calloutTitle: document.querySelector("#callout-title"),
+      calloutCopy: document.querySelector("#callout-copy")
+    };
+    const playButton = document.querySelector("#play");
+    const resetButton = document.querySelector("#reset");
+
+    let progress = 0;
+    let playing = true;
+    let lastTime = performance.now();
+
+    const roundPalette = ["#2e7d58", "#3c8f66", "#4f9f73", "#6aa978", "#8a9954", "#9f7d32"];
+    const roundNames = ["Seed", "Series A", "Series B", "Series C", "Series D", "Growth"];
+
+    const phases = [
+      {
+        title: "Private company forms",
+        copy: "Seed investors put the first money in. The company stays the same visual size; the numbers show what changes.",
+        label: "Seed"
+      },
+      {
+        title: "Private rounds fund the company",
+        copy: "Seed, Series A, Series B, and later investors send cash into the company before anyone can buy it publicly.",
+        label: "Series"
+      },
+      {
+        title: "The company crosses the IPO wall",
+        copy: "At IPO, the company becomes a public stock. Some new cash may go to the company, and some shares come from existing holders.",
+        label: "IPO"
+      },
+      {
+        title: "Early investors start cashing out",
+        copy: "After the IPO and lockup windows, earlier investors can sell some shares. Red arrows show cash moving back to those holders.",
+        label: "Exits"
+      },
+      {
+        title: "Price discovery",
+        copy: "Public investors buy and sell shares. The price settles around supply, demand, results, expectations, and market mood.",
+        label: "Market"
+      }
+    ];
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function ease(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+
+    function values() {
+      return {
+        rounds: Number(controls.rounds.value),
+        capital: Number(controls.capital.value),
+        selloff: Number(controls.selloff.value),
+        demand: Number(controls.demand.value)
+      };
+    }
+
+    function roundModel(state) {
+      const weights = [0.035, 0.12, 0.22, 0.3, 0.35, 0.42].slice(0, state.rounds);
+      const totalWeight = weights.reduce((sum, item) => sum + item, 0);
+      let running = 0;
+
+      return weights.map((weight, index) => {
+        const amount = Math.max(1, Math.round(state.capital * weight / totalWeight));
+        running += amount;
+        const valuationMultiple = [8, 6, 5, 4.2, 3.7, 3.3][index] || 3;
+        const valuation = Math.round(running * valuationMultiple + index * state.capital * 0.22);
+
+        return {
+          name: roundNames[index],
+          amount,
+          cumulative: running,
+          valuation,
+          color: roundPalette[index]
+        };
+      });
+    }
+
+    function currentCompanyX(w, wallX) {
+      const leftStart = Math.max(94, w * 0.17);
+      const leftLate = wallX - Math.max(70, w * 0.08);
+      const publicSpot = wallX + Math.max(96, w * 0.13);
+
+      if (progress < 0.5) {
+        return leftStart + (leftLate - leftStart) * ease(clamp(progress / 0.5, 0, 1));
+      }
+
+      return leftLate + (publicSpot - leftLate) * ease(clamp((progress - 0.5) / 0.2, 0, 1));
+    }
+
+    function updateLabels(state) {
+      output.rounds.value = state.rounds;
+      output.capital.value = `$${state.capital}M`;
+      output.selloff.value = `${state.selloff}%`;
+      output.demand.value = `${state.demand}%`;
+
+      const rounds = roundModel(state);
+      const fundedCount = Math.min(
+        state.rounds,
+        Math.floor(state.rounds * clamp((progress - 0.06) / 0.4, 0, 1) + 0.001)
+      );
+      const cashRaised = rounds.slice(0, fundedCount).reduce((sum, item) => sum + item.amount, 0);
+      const postIpo = clamp((progress - 0.56) / 0.44, 0, 1);
+      const ipoPrimary = Math.round(state.capital * 0.42 * clamp((progress - 0.54) / 0.2, 0, 1));
+      const exitCash = Math.round(state.capital * state.selloff / 100 * 0.82 * clamp((progress - 0.66) / 0.26, 0, 1));
+      const fairPrice = 10 + state.capital / 45 + state.demand / 11 - state.selloff / 17;
+      const wave = Math.sin(progress * Math.PI * 8) * (1 - Math.min(postIpo, 0.85)) * 1.2;
+      const price = clamp(10 + (fairPrice - 10) * postIpo + wave, 3.25, 42);
+      const phaseIndex = progress < 0.22 ? 0 : progress < 0.5 ? 1 : progress < 0.62 ? 2 : progress < 0.8 ? 3 : 4;
+
+      output.value.textContent = `$${cashRaised + ipoPrimary}M`;
+      output.pressure.textContent = `$${exitCash}M`;
+      output.price.textContent = `$${price.toFixed(2)}`;
+      output.phase.textContent = phases[phaseIndex].label;
+      output.calloutTitle.textContent = phases[phaseIndex].title;
+      output.calloutCopy.textContent = phases[phaseIndex].copy;
+    }
+
+    function line(x1, y1, x2, y2, color, width = 2, dash = []) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function arrow(x1, y1, x2, y2, color, width = 2, dash = []) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const headLength = 10;
+      line(x1, y1, x2, y2, color, width, dash);
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function circle(x, y, radius, fill, stroke = "rgba(23,33,43,.2)", width = 1) {
+      ctx.save();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function text(copy, x, y, size, color = "#17212b", weight = 700, align = "center") {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = `${weight} ${size}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
+      ctx.fillText(copy, x, y);
+      ctx.restore();
+    }
+
+    function roundRect(x, y, width, height, radius, fill, stroke = "rgba(23,33,43,.15)") {
+      ctx.save();
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawIpoWall(x, top, bottom) {
+      ctx.save();
+      ctx.strokeStyle = "#b36a1e";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([9, 10]);
+      ctx.beginPath();
+      for (let y = top; y <= bottom; y += 22) {
+        const offset = Math.sin(y * 0.11) * 8;
+        ctx.lineTo(x + offset, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+      text("IPO", x, top - 22, 15, "#8f5418", 800);
+    }
+
+    function investorPosition(index, count, w, h, wallX) {
+      const t = count === 1 ? 0.5 : index / (count - 1);
+      const x = w * 0.09 + t * Math.max(1, wallX - w * 0.23);
+      const y = h * (index % 2 === 0 ? 0.26 : 0.64) + Math.sin(index * 1.3) * 12;
+      return { x, y };
+    }
+
+    function drawCompany(x, y, state, rounds, publicMode = false) {
+      const fundedProgress = clamp((progress - 0.06) / 0.4, 0, 1);
+      const fundedCash = Math.round(state.capital * fundedProgress);
+      const latestRound = rounds[Math.min(rounds.length - 1, Math.floor(rounds.length * fundedProgress))] || rounds[0];
+      const valuation = latestRound ? Math.round(latestRound.valuation * fundedProgress) : 0;
+
+      circle(x, y, 31, publicMode ? "rgba(179, 106, 30, 0.18)" : "rgba(37, 99, 169, 0.16)", publicMode ? "rgba(179, 106, 30, 0.92)" : "rgba(37, 99, 169, 0.58)", 3);
+      circle(x, y, 17, publicMode ? "#b36a1e" : "#2563a9", "white", 3);
+      text(publicMode ? "IPO Co." : "Company", x, y + 52, 13, "#17212b", 850);
+      text(`cash $${fundedCash}M`, x, y - 52, 13, "#17212b", 850);
+      text(`value $${valuation}M`, x, y - 34, 12, "#5d6975", 750);
+    }
+
+    function drawFunding(state, w, h, wallX) {
+      const centerY = h * 0.48;
+      const companyX = currentCompanyX(w, wallX);
+      const rounds = roundModel(state);
+      const roundsVisible = Math.ceil(state.rounds * clamp((progress - 0.04) / 0.42, 0, 1));
+
+      for (let i = 0; i < state.rounds; i += 1) {
+        const round = rounds[i];
+        const { x, y } = investorPosition(i, state.rounds, w, h, wallX);
+        const active = i < roundsVisible;
+        const alpha = active ? 1 : 0.2;
+        roundRect(x - 42, y - 24, 84, 48, 8, `rgba(46, 125, 88, ${0.05 + alpha * 0.08})`, `rgba(46, 125, 88, ${0.18 + alpha * 0.42})`);
+        circle(x - 30, y, 7, round.color, "white", 1.5);
+        text(round.name, x + 5, y - 7, 11, `rgba(46, 81, 68, ${0.45 + alpha * 0.55})`, 850);
+        text(`$${round.amount}M`, x + 5, y + 10, 12, `rgba(23, 33, 43, ${0.48 + alpha * 0.52})`, 850);
+
+        const fly = clamp((progress - 0.1 - i * 0.045) / 0.22, 0, 1);
+        const px = x + (companyX - x) * ease(fly);
+        const py = y + (centerY - y) * ease(fly);
+        if (fly > 0 && fly < 1) {
+          arrow(x + 24, y, px - 22, py, `rgba(46, 125, 88, ${0.32 + alpha * 0.45})`, 2);
+          circle(px, py, 5, "rgba(46, 125, 88, 0.9)", "white", 2);
+        }
+      }
+
+      drawCompany(companyX, centerY, state, rounds, progress > 0.58);
+    }
+
+    function drawMarket(state, w, h, wallX) {
+      const start = clamp((progress - 0.54) / 0.46, 0, 1);
+      const sellStart = clamp((progress - 0.63) / 0.26, 0, 1);
+      const demandStart = clamp((progress - 0.7) / 0.24, 0, 1);
+      const centerY = h * 0.48;
+      const companyX = currentCompanyX(w, wallX);
+      const exchangeX = Math.min(w - 82, wallX + Math.max(92, w * 0.18));
+      const rounds = roundModel(state);
+
+      if (start > 0) {
+        roundRect(exchangeX - 54, centerY - 34, 108, 68, 8, "rgba(255,255,255,.72)", "rgba(37,99,169,.25)");
+        text("Public", exchangeX, centerY - 12, 13, "#2563a9", 850);
+        text("market", exchangeX, centerY + 8, 13, "#2563a9", 850);
+        arrow(companyX + 30, centerY, exchangeX - 56, centerY, "rgba(179, 106, 30, 0.8)", 2.5, [6, 5]);
+        text(`IPO raises $${Math.round(state.capital * 0.42 * start)}M`, (companyX + exchangeX) / 2, centerY - 28, 12, "#8f5418", 800);
+      }
+
+      for (let i = 0; i < state.rounds; i += 1) {
+        const { x, y } = investorPosition(i, state.rounds, w, h, wallX);
+        const cashOut = Math.round(rounds[i].amount * state.selloff / 100 * 1.6);
+        const exit = clamp(sellStart - i * 0.04, 0, 1);
+        if (exit > 0) {
+          const fromX = exchangeX - 20;
+          const px = fromX + (x - fromX) * ease(exit);
+          const py = centerY + (y - centerY) * ease(exit);
+          arrow(fromX, centerY, px, py, "rgba(180, 61, 61, 0.65)", 2);
+          circle(px, py, 5, "rgba(180, 61, 61, 0.9)", "white", 1.5);
+          text(`+$${cashOut}M`, x, y + 38, 11, "rgba(180, 61, 61, 0.95)", 850);
+        }
+      }
+
+      const buyers = Math.round(4 + state.demand / 13);
+      for (let i = 0; i < buyers; i += 1) {
+        const y = h * 0.22 + i * ((h * 0.52) / Math.max(buyers - 1, 1));
+        const x = Math.min(w - 42, exchangeX + 92 + (i % 3) * 18);
+        const buy = clamp(demandStart - i * 0.025, 0, 1);
+        if (demandStart > 0) {
+          circle(x, y, 6 + state.demand / 80, `rgba(37, 99, 169, ${0.25 + demandStart * 0.55})`, "white", 1.5);
+          if (buy > 0) {
+            const px = x + (exchangeX + 56 - x) * ease(buy);
+            const py = y + (centerY - y) * ease(buy);
+            arrow(x - 10, y, px, py, "rgba(37, 99, 169, 0.55)", 2);
+          }
+        }
+      }
+
+      if (start > 0) {
+        const chartX = wallX + 82;
+        const chartY = h * 0.75;
+        const chartW = w - chartX - 36;
+        const chartH = 96;
+        line(chartX, chartY, chartX + chartW, chartY, "rgba(23,33,43,.26)", 1);
+        line(chartX, chartY - chartH, chartX, chartY, "rgba(23,33,43,.16)", 1);
+
+        ctx.save();
+        ctx.strokeStyle = "#2563a9";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const points = 42;
+        for (let i = 0; i < points; i += 1) {
+          const t = i / (points - 1);
+          const wave = Math.sin(t * Math.PI * 3 + progress * 7) * (1 - t) * 22;
+          const trend = (state.demand - state.selloff) * 0.36 * t;
+          const x = chartX + t * chartW * start;
+          const y = chartY - 44 - trend - wave;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+        text("price discovery", chartX + chartW / 2, chartY + 24, 13, "#5d6975", 750);
+      }
+    }
+
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      const state = values();
+      const wallX = w * 0.52;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < 18; i += 1) {
+        const x = i * w / 18;
+        line(x, 76, x, h - 76, "rgba(23,33,43,.035)", 1);
+      }
+
+      drawIpoWall(wallX, 88, h - 118);
+      drawFunding(state, w, h, wallX);
+      drawMarket(state, w, h, wallX);
+      updateLabels(state);
+    }
+
+    function tick(now) {
+      const delta = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      if (playing) {
+        progress += delta * 0.105;
+        if (progress > 1) progress = 1;
+      }
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    Object.values(controls).forEach((control) => {
+      control.addEventListener("input", draw);
+    });
+
+    playButton.addEventListener("click", () => {
+      playing = !playing;
+      playButton.textContent = playing ? "Pause" : "Play";
+    });
+
+    resetButton.addEventListener("click", () => {
+      progress = 0;
+      playing = true;
+      playButton.textContent = "Pause";
+      draw();
+    });
+
+    window.addEventListener("resize", resize);
+    playButton.textContent = "Pause";
+    resize();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
