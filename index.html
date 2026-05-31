@@ -524,7 +524,7 @@
     function currentCompanyX(w, wallX) {
       const leftStart = Math.max(94, w * 0.17);
       const leftLate = wallX - Math.max(70, w * 0.08);
-      const publicSpot = wallX + Math.max(96, w * 0.13);
+      const publicSpot = wallX + Math.max(62, w * 0.085);
 
       if (progress < 0.5) {
         return leftStart + (leftLate - leftStart) * ease(clamp(progress / 0.5, 0, 1));
@@ -590,6 +590,32 @@
       ctx.moveTo(x2, y2);
       ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
       ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function elbowArrow(points, color, width = 2, dash = []) {
+      const end = points[points.length - 1];
+      const beforeEnd = points[points.length - 2];
+      const angle = Math.atan2(end.y - beforeEnd.y, end.x - beforeEnd.x);
+      const headLength = 10;
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(end.x, end.y);
+      ctx.lineTo(end.x - headLength * Math.cos(angle - Math.PI / 6), end.y - headLength * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(end.x - headLength * Math.cos(angle + Math.PI / 6), end.y - headLength * Math.sin(angle + Math.PI / 6));
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -692,17 +718,21 @@
       roundRect(cursor, y, foundersWidth, height, 4, "rgba(37, 99, 169, .76)", "rgba(255,255,255,.9)");
       cursor += foundersWidth;
 
-      ownership.investors.forEach((slice, index) => {
-        if (!slice.active) return;
-        const sliceWidth = Math.max(3, width * slice.share);
+      const optionWidth = width * ownership.optionPool;
+      const activeInvestors = ownership.investors.filter((slice) => slice.active);
+      const rawInvestorTotal = activeInvestors.reduce((sum, slice) => sum + slice.share, 0);
+      const investorWidth = Math.max(0, width - foundersWidth - optionWidth);
+
+      activeInvestors.forEach((slice, index) => {
+        const sliceWidth = rawInvestorTotal > 0 ? investorWidth * (slice.share / rawInvestorTotal) : 0;
+        if (sliceWidth < 2) return;
         roundRect(cursor, y, sliceWidth, height, 2, `${slice.color}cc`, "rgba(255,255,255,.65)");
         cursor += sliceWidth;
         if (sliceWidth > 22) text(String(index + 1), cursor - sliceWidth / 2, y + height / 2, 9, "white", 850);
       });
 
-      const optionWidth = Math.max(0, width * ownership.optionPool);
       if (optionWidth > 3) {
-        roundRect(cursor, y, optionWidth, height, 2, "rgba(179, 106, 30, .72)", "rgba(255,255,255,.65)");
+        roundRect(x + width - optionWidth, y, optionWidth, height, 2, "rgba(179, 106, 30, .72)", "rgba(255,255,255,.65)");
       }
 
       text(`founders ${Math.round(ownership.founders * 100)}%`, x, y + 34, 12, "#2563a9", 850, "left");
@@ -797,8 +827,8 @@
         roundRect(exchangeX - 54, centerY - 34, 108, 68, 8, "rgba(255,255,255,.72)", "rgba(37,99,169,.25)");
         text("Public", exchangeX, centerY - 12, 13, "#2563a9", 850);
         text("market", exchangeX, centerY + 8, 13, "#2563a9", 850);
-        arrow(companyX + 30, centerY - 28, exchangeX - 56, centerY - 28, "rgba(46, 125, 88, 0.78)", 2.5, [6, 5]);
-        arrow(exchangeX - 56, centerY + 30, companyX + 30, centerY + 30, "rgba(179, 106, 30, 0.72)", 2, [4, 5]);
+        arrow(companyX + 33, centerY - 28, exchangeX - 58, centerY - 28, "rgba(46, 125, 88, 0.78)", 2.5, [6, 5]);
+        arrow(exchangeX - 58, centerY + 30, companyX + 33, centerY + 30, "rgba(179, 106, 30, 0.72)", 2, [4, 5]);
         labelBadge([`primary $${Math.round(state.capital * 0.42 * start)}M`, "to company"], exchangeX - 88, centerY - 62, {
           color: "#2e7d58",
           fill: "rgba(255,255,255,.88)"
@@ -815,12 +845,10 @@
         const cashOut = Math.round(rounds[i].amount * state.selloff / 100 * 1.6);
         const exit = clamp(sellStart - i * 0.04, 0, 1);
         if (exit > 0) {
-          const fromX = exchangeX - 62;
-          const fromY = centerY + 34;
-          const px = fromX + (x - fromX) * ease(exit);
-          const py = fromY + (y - fromY) * ease(exit);
-          arrow(fromX, fromY, px, py, "rgba(180, 61, 61, 0.65)", 2);
-          circle(px, py, 5, "rgba(180, 61, 61, 0.9)", "white", 1.5);
+          const markerX = x + 42;
+          const markerY = y - 4;
+          arrow(markerX + 18, markerY, markerX + 3, markerY, "rgba(180, 61, 61, 0.72)", 2);
+          circle(markerX + 3, markerY, 4.5, "rgba(180, 61, 61, 0.92)", "white", 1.5);
           text(`+$${cashOut}M`, x, y + 38, 11, "rgba(180, 61, 61, 0.95)", 850);
         }
       }
