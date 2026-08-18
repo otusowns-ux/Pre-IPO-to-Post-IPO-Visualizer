@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-IPO to Post-IPO Visualizer</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/generic.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pre-IPO to Post-IPO Visualizer</h1>
+      <p class="subhead">A simple model of private capital flowing into a company, crossing the IPO threshold, and then meeting public-market price discovery.</p>
+    </header>
+
+    <section class="app" aria-label="IPO visualizer">
+      <div class="stage-wrap">
+        <div class="legend">
+          <span>Pre-IPO private rounds</span>
+          <span>Post-IPO public market</span>
+        </div>
+        <canvas id="stage" aria-label="Animated diagram of private funding rounds and public market trading"></canvas>
+        <div class="callout" aria-live="polite">
+          <strong id="callout-title">Private company forms</strong>
+          <span id="callout-copy">The company starts as a small dot. Early believers provide capital before the stock is public.</span>
+        </div>
+      </div>
+
+      <aside>
+        <div class="controls">
+          <div class="control">
+            <label for="rounds">Funding rounds <output id="rounds-out">4</output></label>
+            <input id="rounds" type="range" min="1" max="6" value="4">
+          </div>
+
+          <div class="control">
+            <label for="capital">Capital raised <output id="capital-out">$120M</output></label>
+            <input id="capital" type="range" min="20" max="300" step="10" value="120">
+          </div>
+
+          <div class="control">
+            <label for="selloff">Investor selling after IPO <output id="selloff-out">45%</output></label>
+            <input id="selloff" type="range" min="0" max="90" step="5" value="45">
+          </div>
+
+          <div class="control">
+            <label for="demand">Public demand <output id="demand-out">60%</output></label>
+            <input id="demand" type="range" min="10" max="100" step="5" value="60">
+          </div>
+
+          <div class="control">
+            <label for="float">Day-one float <output id="float-out">15%</output></label>
+            <input id="float" type="range" min="5" max="30" step="1" value="15">
+          </div>
+
+          <div class="control">
+            <label for="lockup">Lockup period <output id="lockup-out">180 days</output></label>
+            <input id="lockup" type="range" min="90" max="365" step="15" value="180">
+          </div>
+
+          <div class="buttons">
+            <button id="play">Play</button>
+            <button id="reset" class="secondary">Reset</button>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <b id="value">$0M</b>
+              <span>Cash raised into company</span>
+            </div>
+            <div class="metric">
+              <b id="pressure">0%</b>
+              <span>Early-investor cash out</span>
+            </div>
+            <div class="metric">
+              <b id="price">$10.00</b>
+              <span>Public trading price</span>
+            </div>
+            <div class="metric">
+              <b id="phase">Seed</b>
+              <span>Current phase</span>
+            </div>
+            <div class="metric">
+              <b id="ownership">100%</b>
+              <span>Founder ownership left</span>
+            </div>
+            <div class="metric">
+              <b id="float-metric">15%</b>
+              <span>Shares tradeable day one</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="key">
+          <div class="key-row"><i class="swatch green"></i><span>Private money enters through seed, Series A, Series B, and later rounds with visible dollar amounts.</span></div>
+          <div class="key-row"><i class="swatch gold"></i><span>Primary IPO shares fund the company; secondary shares pay existing holders.</span></div>
+          <div class="key-row"><i class="swatch red"></i><span>Lockup expiration increases how many insider shares can hit the market.</span></div>
+          <div class="key-row"><i class="swatch"></i><span>Public investors buy shares while the price explores upside, flat, and downside paths.</span></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="js/generic/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpaceX IPO Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/spacex.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand">SpaceX</p>
+      <h1>IPO &amp; Year-One Exit Visualizer</h1>
+      <p class="subhead">How private funding built SpaceX, what happens on IPO day, and how different holders unlock and exit over the first public year — with Musk’s lockup lasting until day 365.</p>
+      <p class="disclaimer">Illustrative model of typical IPO mechanics and reported ownership patterns. Not a live cap table, forecast, or investment advice.</p>
+    </header>
+
+    <section class="app" aria-label="SpaceX IPO visualizer">
+      <div class="stage-wrap">
+        <div class="legend">
+          <span>Private funding eras</span>
+          <span>IPO → year-one exits</span>
+        </div>
+        <canvas id="stage" aria-label="Animated diagram of SpaceX funding rounds and staggered post-IPO exits"></canvas>
+        <div class="callout" aria-live="polite">
+          <strong id="callout-title">Founding capital</strong>
+          <span id="callout-copy">SpaceX starts with founder capital and early believers. The company stays private for decades of funding before any IPO.</span>
+        </div>
+      </div>
+
+      <aside>
+        <div class="controls">
+          <div class="schedule" aria-label="Lockup schedule">
+            <h2>Lockup schedule</h2>
+            <div class="schedule-row"><i class="dot" style="background:#1f7a4d"></i><span>Early VCs</span><span>90 days</span></div>
+            <div class="schedule-row"><i class="dot" style="background:#c45c12"></i><span>Growth investors</span><span>180 days</span></div>
+            <div class="schedule-row"><i class="dot" style="background:#1a4f8c"></i><span>Employees</span><span>180 days</span></div>
+            <div class="schedule-row"><i class="dot" style="background:#6b2d8b"></i><span>Musk</span><span>365 days</span></div>
+            <div class="schedule-row"><i class="dot" style="background:#5a6570"></i><span>Day-one float</span><span>At IPO</span></div>
+          </div>
+
+          <div class="control">
+            <label for="float">IPO float <output id="float-out">12%</output></label>
+            <input id="float" type="range" min="5" max="25" step="1" value="12">
+          </div>
+
+          <div class="control">
+            <label for="demand">Public demand <output id="demand-out">70%</output></label>
+            <input id="demand" type="range" min="20" max="100" step="5" value="70">
+          </div>
+
+          <div class="control">
+            <label for="musk-sell">Musk sell intensity <output id="musk-sell-out">25%</output></label>
+            <input id="musk-sell" type="range" min="0" max="60" step="5" value="25">
+          </div>
+
+          <div class="buttons">
+            <button id="play">Pause</button>
+            <button id="reset" class="secondary">Reset</button>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <b id="day-metric">Pre-IPO</b>
+              <span>Current day (post-IPO)</span>
+            </div>
+            <div class="metric">
+              <b id="secondary">$0B</b>
+              <span>Cumulative secondary sold</span>
+            </div>
+            <div class="metric">
+              <b id="next-unlock">—</b>
+              <span>Next unlock</span>
+            </div>
+            <div class="metric">
+              <b id="pressure">0%</b>
+              <span>Supply pressure (latest wave)</span>
+            </div>
+            <div class="metric">
+              <b id="price">—</b>
+              <span>Illustrative price path</span>
+            </div>
+            <div class="metric">
+              <b id="musk-lock">Locked</b>
+              <span>Musk shares status</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="key">
+          <div class="key-row"><i class="swatch green"></i><span>Private money enters through founding, early VC, growth, and late mega-rounds; pre-IPO tenders already give some holders liquidity.</span></div>
+          <div class="key-row"><i class="swatch gold"></i><span>At IPO, primary shares fund SpaceX; secondary shares pay existing holders on day one.</span></div>
+          <div class="key-row"><i class="swatch red"></i><span>Exit rounds after IPO: VCs, then employees, unlock on different days — supply hits the market in waves.</span></div>
+          <div class="key-row"><i class="swatch musk"></i><span>Musk stays locked until ~day 365, then a distinct year-one exit window opens.</span></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="js/spacex/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+:root {
+  --ink: #0f1720;
+  --muted: #5a6570;
+  --paper: #f4f6f8;
+  --line: #cfd6dd;
+  --green: #1f7a4d;
+  --gold: #c45c12;
+  --blue: #1a4f8c;
+  --red: #b43d3d;
+  --musk: #6b2d8b;
+  --panel: #ffffff;
+  --shadow: 0 18px 48px rgba(15, 23, 32, 0.12);
+  --font: "IBM Plex Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --header-bg: rgba(244, 246, 248, 0.9);
+  --aside-width: 340px;
+  --stage-min-height: 640px;
+  --h1-tracking: -0.02em;
+  --legend-tracking: 0.04em;
+  --stage-bg:
+    linear-gradient(90deg, rgba(31, 122, 77, 0.07), rgba(31, 122, 77, 0.02) 47%, transparent 47%),
+    linear-gradient(90deg, transparent 53%, rgba(26, 79, 140, 0.04), rgba(26, 79, 140, 0.1)),
+    #fbfcfd;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(26, 79, 140, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 90% 0%, rgba(196, 92, 18, 0.06), transparent 45%),
+    var(--paper);
+}
+
+h1 {
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+}
+
+.subhead {
+  font-size: 0.95rem;
+}
+
+.legend {
+  font-size: 0.78rem;
+}
+
+.callout {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+@media (max-width: 900px) {
+  .stage-wrap {
+    min-height: 580px;
+  }
+}
+
+@media (max-width: 560px) {
+  .stage-wrap {
+    min-height: 520px;
+  }
+
+  .legend {
+    font-size: 0.68rem;
+  }
+}
